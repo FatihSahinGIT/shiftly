@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist/apps/shift-calendar/browser"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Let Angular Router handle direct links such as /calendar after a refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
