@@ -1,284 +1,101 @@
-# Nx Angular Repository
+# Shiftly
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Shiftly ist ein responsiver, deutschsprachiger Familien-Schichtkalender. Eine Administratorin verwaltet Früh-, Spät- und Nachtdienste per Drag-and-drop oder Tastatur-/Klickbedienung; angemeldete Familienmitglieder sehen Kalender und Details im Nur-Lese-Modus.
 
-✨ A repository showcasing key [Nx](https://nx.dev) features for Angular monorepos ✨
+Die Anwendung startet ohne externe Dienste sofort im lokalen Demo-Modus. Für eine echte geräteübergreifende Nutzung steht ein Supabase-Adapter inklusive Datenbankschema und serverseitigen Row-Level-Security-Regeln bereit.
 
-🚀 If you haven't connected to Nx Cloud yet, [complete your setup here](https://cloud.nx.app/get-started). Get faster builds with remote caching, distributed task execution, and self-healing CI. [See how your workspace can benefit](#nx-cloud).
+## Voraussetzungen
 
-## 📦 Project Overview
+- Node.js 22 oder neuer
+- npm 11 oder neuer
+- optional: ein Supabase-Projekt
 
-This repository demonstrates a production-ready Angular monorepo with:
-
-- **2 Applications**
-
-  - `shop` - Angular e-commerce application with product listings and detail views
-  - `api` - Backend API with Docker support serving product data
-
-- **6 Libraries**
-
-  - `@org/feature-products` - Product listing feature (Angular)
-  - `@org/feature-product-detail` - Product detail feature (Angular)
-  - `@org/data` - Data access layer for shop features
-  - `@org/shared-ui` - Shared UI components
-  - `@org/models` - Shared data models
-  - `@org/products` - API product service library
-
-- **E2E Testing**
-  - `shop-e2e` - Playwright tests for the shop application
-
-## 🚀 Quick Start
+## Installation und Start
 
 ```bash
-# Clone the repository
-git clone <your-fork-url>
-cd <your-repository-name>
-
-# Install dependencies
-# (Note: You may need --legacy-peer-deps)
 npm install
-
-# Serve the Angular shop application (this will simultaneously serve the API backend)
-npx nx run shop:serve
-
-# ...or you can serve the API separately
-npx nx run api:serve
-
-# Build all projects
-npx nx run-many -t build
-
-# Run tests
-npx nx run-many -t test
-
-# Lint all projects
-npx nx run-many -t lint
-
-# Run e2e tests
-npx nx run shop-e2e:e2e
-
-# Run tasks in parallel
-
-npx nx run-many -t lint test build e2e --parallel=3
-
-# Visualize the project graph
-npx nx graph
+npm start
 ```
 
-## ⭐ Featured Nx Capabilities
+Danach ist die Anwendung unter `http://localhost:4200` erreichbar. Ein Produktions-Build wird mit `npm run build` erstellt und liegt unter `dist/apps/shift-calendar/browser`.
 
-This repository showcases several powerful Nx features:
+Das Repository ist ein Nx-Workspace. Starte die Anwendung deshalb immer aus dem Repository-Stamm mit `npm start` oder `npm exec -- nx serve shift-calendar`. `ng serve` erwartet einen klassischen Angular-CLI-Workspace mit `angular.json` und ist hier nicht der richtige Einstiegspunkt.
 
-### 1. 🔒 Module Boundaries
+Falls der globale npm-Cache auf macOS root-eigene Dateien enthält, verwendet die eingecheckte `.npmrc` automatisch den ignorierten Projektcache `.npm-cache`. Dadurch benötigt `npm install` weder `sudo` noch `--force`.
 
-Enforces architectural constraints using tags. Each project has specific dependencies it can use:
+## Demo-Zugangsdaten
 
-- `scope:shared` - Can be used by all projects
-- `scope:shop` - Shop-specific libraries
-- `scope:api` - API-specific libraries
-- `type:feature` - Feature libraries
-- `type:data` - Data access libraries
-- `type:ui` - UI component libraries
+| Rolle | Benutzername | Passwort |
+| --- | --- | --- |
+| Administratorin | `mama` | `mama123` |
+| Nur-Lese-Zugriff | `familie` | `familie123` |
 
-**Try it out:**
+> Der lokale Demo-Modus ist ausdrücklich nur zum Testen bestimmt. Passwörter und Sitzung werden nicht sicher serverseitig verwaltet. Daten liegen ausschließlich im `localStorage` des jeweiligen Browsers und werden nicht zwischen Geräten synchronisiert.
+
+## Bedienung
+
+Als `mama` kann eine Schichtkarte auf einen Kalendertag gezogen werden. Auf Touch-Geräten funktioniert dieselbe CDK-Drag-and-drop-Bedienung. Alternativ eine Schichtkarte anklicken und danach den Tag auswählen. Ein belegter Tag wird erst nach Bestätigung ersetzt. Ein Klick auf eine vorhandene Schicht öffnet Notiz, Schichtart und Löschfunktion.
+
+Als `familie` bleiben Palette und sämtliche Schreibaktionen ausgeblendet. Die Kalenderdetails sind lesbar; die Daten- und Guard-Schicht weist Schreibversuche zusätzlich ab.
+
+## Architektur
+
+```text
+apps/shift-calendar          App-Shell, Runtime-Konfiguration, Lazy Routes
+libs/core/auth               Auth-Repositories, Signal-State, Guards, Login
+libs/core/data-access        Storage-Abstraktion, Runtime-Config, Supabase-Client
+libs/shared/models           Frameworkarme Domainmodelle und lokale Datumslogik
+libs/shared/ui               wiederverwendbarer, Reduced-Motion-fähiger Motion-Service
+libs/calendar/feature        Kalender-Use-Cases und Seitenorchestrierung
+libs/calendar/data-access    Repository-Interface, Local-/Supabase-Adapter, Signal-Store
+libs/calendar/ui             präsentationale Kalender-, Palette- und Dialog-Komponenten
+```
+
+Komponenten greifen weder direkt auf `localStorage` noch auf Supabase zu. `AuthRepository` und `ShiftRepository` trennen die Betriebsarten. Der lokale Zustand wird mit Angular Signals verwaltet; alle Komponenten sind standalone und nutzen OnPush Change Detection. Kalender- und Loginroute werden lazy geladen.
+
+Lokale Kalendertage werden ohne UTC-Konvertierung als `YYYY-MM-DD` konstruiert. Dadurch bleiben Tage auch in Zeitzonen mit Sommerzeit stabil.
+
+## Supabase einrichten
+
+1. Ein neues Supabase-Projekt erstellen.
+2. Im SQL Editor den gesamten Inhalt von [`supabase/migrations/20260920120000_initial_shiftly.sql`](supabase/migrations/20260920120000_initial_shiftly.sql) ausführen. Alternativ mit installierter Supabase CLI: `supabase db push`.
+3. Unter **Authentication → Users** die Familienkonten mit E-Mail-Adresse und Passwort anlegen.
+4. Für jede Auth-UUID ein Profil einfügen. Nur das Verwaltungskonto erhält `admin`:
+
+   ```sql
+   insert into public.profiles (id, username, display_name, role)
+   values
+     ('UUID-DES-ADMIN-KONTOS', 'mama', 'Mama', 'admin'),
+     ('UUID-DES-FAMILIEN-KONTOS', 'familie', 'Familie', 'viewer');
+   ```
+
+5. [`apps/shift-calendar/public/config.example.js`](apps/shift-calendar/public/config.example.js) als Vorlage für `apps/shift-calendar/public/config.js` verwenden:
+
+   ```js
+   globalThis.SHIFTLY_CONFIG = {
+     supabaseUrl: 'https://DEIN-PROJEKT.supabase.co',
+     supabaseAnonKey: 'DEIN_PUBLIC_ANON_KEY',
+   };
+   ```
+
+6. App neu starten. Sobald beide Werte gesetzt sind, schaltet Shiftly automatisch in den Supabase-Modus. Beim Login wird dann die E-Mail-Adresse des Supabase-Auth-Benutzers verwendet.
+
+Der öffentliche `anon`-Key ist für Browser-Clients vorgesehen; die Sicherheit entsteht durch RLS. Niemals den `service_role`-Key in `config.js`, Quellcode oder Build-Artefakte schreiben. Die Migration erlaubt allen authentifizierten Familienmitgliedern Lesezugriff. Insert, Update und Delete werden serverseitig ausschließlich für Profile mit Rolle `admin` freigegeben. Profile können aus dem Client nicht verändert werden, sodass kein Viewer seine Rolle hochstufen kann.
+
+## Prüfungen
 
 ```bash
-# See the current project graph and boundaries
-npx nx graph
-
-# View a specific project's details
-npx nx show project shop --web
+npm run lint
+npm run typecheck
+npm test
+npm run build
 ```
 
-[Learn more about module boundaries →](https://nx.dev/docs/features/enforce-module-boundaries)
+Die Tests decken erfolgreichen und fehlgeschlagenen Login, Sitzungswiederherstellung, Rollenprüfung, Admin-CRUD, Viewer-Schreibschutz, Anlegen, Ersetzen, Löschen, Monatswechsel und lokale Persistenz ab.
 
-### 2. 🐳 Docker Integration
+## Hinweise zur Produktion
 
-The API project includes Docker support with automated targets and release management:
-
-```bash
-# Build Docker image
-npx nx run api:docker:build
-
-# Run Docker container
-npx nx run api:docker:run
-
-# Release with automatic Docker image versioning
-npx nx release
-```
-
-**Nx Release for Docker:** The repository is configured to use Nx Release for managing Docker image versioning and publishing. When running `nx release`, Docker images for the API project are automatically versioned and published based on the release configuration in `nx.json`. This integrates seamlessly with semantic versioning and changelog generation.
-
-[Learn more about Docker integration →](https://nx.dev/docs/guides/nx-release/release-docker-images)
-
-### 3. 🎭 Playwright E2E Testing
-
-End-to-end testing with Playwright is pre-configured:
-
-```bash
-# Run e2e tests
-npx nx run shop-e2e:e2e
-
-# Run e2e tests in CI mode
-npx nx run shop-e2e:e2e-ci
-```
-
-[Learn more about E2E testing →](https://nx.dev/docs/technologies/test-tools/playwright)
-
-### 4. ⚡ Vitest for Unit Testing
-
-Fast unit testing with Vite for Angular libraries:
-
-```bash
-# Test a specific library
-npx nx run data:test
-
-# Test all projects
-npx nx run-many -t test
-```
-
-[Learn more about Vite testing →](https://nx.dev/docs/technologies/build-tools/vite)
-
-### 5. 🔧 Self-Healing CI
-
-The CI pipeline includes `nx fix-ci` which automatically identifies and suggests fixes for common issues:
-
-```bash
-# In CI, this command provides automated fixes
-npx nx fix-ci
-```
-
-This feature helps maintain a healthy CI pipeline by automatically detecting and suggesting solutions for:
-
-- Missing dependencies
-- Incorrect task configurations
-- Cache invalidation issues
-- Common build failures
-
-[Learn more about self-healing CI →](https://nx.dev/docs/features/ci-features/self-healing-ci)
-
-## 📁 Project Structure
-
-```
-├── apps/
-│   ├── shop/           [scope:shop]    - Angular e-commerce app
-│   ├── shop-e2e/                       - E2E tests for shop
-│   └── api/            [scope:api]     - Backend API with Docker
-├── packages/
-│   ├── shop/
-│   │   ├── feature-products/        [scope:shop,type:feature] - Product listing
-│   │   ├── feature-product-detail/  [scope:shop,type:feature] - Product details
-│   │   ├── data/                    [scope:shop,type:data]    - Data access
-│   │   └── shared-ui/               [scope:shop,type:ui]      - UI components
-│   ├── api/
-│   │   └── products/    [scope:api]    - Product service
-│   └── shared/
-│       └── models/      [scope:shared,type:data] - Shared models
-├── nx.json             - Nx configuration
-├── tsconfig.json       - TypeScript configuration
-└── eslint.config.mjs   - ESLint with module boundary rules
-```
-
-## 🏷️ Understanding Tags
-
-This repository uses tags to enforce module boundaries:
-
-| Project            | Tags                         | Can Import From              |
-| ------------------ | ---------------------------- | ---------------------------- |
-| `shop`             | `scope:shop`                 | `scope:shop`, `scope:shared` |
-| `api`              | `scope:api`                  | `scope:api`, `scope:shared`  |
-| `feature-products` | `scope:shop`, `type:feature` | `scope:shop`, `scope:shared` |
-| `data`             | `scope:shop`, `type:data`    | `scope:shared`               |
-| `models`           | `scope:shared`, `type:data`  | Nothing (base library)       |
-
-## 📚 Useful Commands
-
-```bash
-# Project exploration
-npx nx graph                                    # Interactive dependency graph
-npx nx list                                     # List installed plugins
-npx nx show project shop --web                 # View project details
-
-# Development
-npx nx run shop:serve                              # Serve Angular app
-npx nx run api:serve                               # Serve backend API
-npx nx run shop:build                              # Build Angular app
-npx nx run data:test                               # Test a specific library
-npx nx run feature-products:lint                   # Lint a specific library
-
-# Running multiple tasks
-npx nx run-many -t build                       # Build all projects
-npx nx run-many -t test --parallel=3          # Test in parallel
-npx nx run-many -t lint test build            # Run multiple targets
-
-# Affected commands (great for CI)
-npx nx affected -t build                       # Build only affected projects
-npx nx affected -t test                        # Test only affected projects
-
-# Docker operations
-npx nx run api:docker:build                        # Build Docker image
-npx nx run api:docker:run                          # Run Docker container
-```
-
-## 🎯 Adding New Features
-
-### Generate a new Angular application:
-
-```bash
-npx nx g @nx/angular:app my-app
-```
-
-### Generate a new Angular library:
-
-```bash
-npx nx g @nx/angular:lib my-lib
-```
-
-### Generate a new Angular component:
-
-```bash
-npx nx g @nx/angular:component my-component --project=my-lib
-```
-
-### Generate a new API library:
-
-```bash
-npx nx g @nx/node:lib my-api-lib
-```
-
-You can use `npx nx list` to see all available plugins and `npx nx list <plugin-name>` to see all generators for a specific plugin.
-
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/docs/features/ci-features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/docs/features/ci-features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/docs/features/ci-features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/docs/features/ci-features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/docs/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## 🔗 Learn More
-
-- [Nx Documentation](https://nx.dev/docs)
-- [Angular Monorepo Tutorial](https://nx.dev/docs/getting-started/tutorials/angular-monorepo-tutorial)
-- [Module Boundaries](https://nx.dev/docs/features/enforce-module-boundaries)
-- [Docker Integration](https://nx.dev/docs/guides/nx-release/release-docker-images)
-- [Playwright Testing](https://nx.dev/docs/technologies/test-tools/playwright)
-- [Vite with Angular](https://nx.dev/docs/technologies/build-tools/vite)
-- [Nx Cloud](https://nx.dev/nx-cloud)
-- [Releasing Packages](https://nx.dev/docs/features/manage-releases)
-
-## 💬 Community
-
-Join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [X (Twitter)](https://twitter.com/nxdevtools)
-- [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [YouTube](https://www.youtube.com/@nxdevtools)
-- [Blog](https://nx.dev/blog)
+- `config.js` wird zur Laufzeit geladen, daher ist für verschiedene Deployments kein neuer Angular-Build nötig.
+- Die Anwendung verwendet keine Service-Role-Zugangsdaten.
+- Der Demo-Modus ist weder Mehrbenutzer- noch geräteübergreifend und darf nicht für sensible Einsatzdaten verwendet werden.
+# shiftly
