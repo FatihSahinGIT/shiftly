@@ -1,0 +1,13 @@
+{
+  "name": "calendar-feature",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/calendar/feature/src",
+  "prefix": "shiftly",
+  "projectType": "library",
+  "tags": ["scope:calendar", "type:feature"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

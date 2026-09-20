@@ -1,0 +1,30 @@
+@if (model(); as editor) {
+  <div class="backdrop" (click)="dismissed.emit()" aria-hidden="true"></div>
+  <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+    <button type="button" class="close" aria-label="Dialog schließen" (click)="dismissed.emit()">×</button>
+    <p class="eyebrow">{{ readonly() ? 'Schichtdetails' : (editor.entry ? 'Schicht bearbeiten' : 'Schicht eintragen') }}</p>
+    <h2 id="editor-title">{{ dateLabel() }}</h2>
+    @if (readonly()) {
+      <div class="detail type--{{ selectedType() }}"><strong>{{ labels[selectedType()] }}</strong><span>{{ note() || 'Keine Notiz hinterlegt.' }}</span></div>
+    } @else {
+      <fieldset>
+        <legend>Schichtart</legend>
+        <div class="types">
+          @for (type of types; track type) {
+            <button type="button" class="type type--{{ type }}" [class.selected]="selectedType() === type" [attr.aria-pressed]="selectedType() === type" (click)="selectedType.set(type)">{{ labels[type] }}</button>
+          }
+        </div>
+      </fieldset>
+      <label for="note">Notiz <span>optional</span></label>
+      <textarea id="note" rows="3" maxlength="180" [value]="note()" (input)="updateNote($event)" placeholder="z. B. Stationswechsel"></textarea>
+    }
+    <div class="actions">
+      @if (readonly()) {
+        <button type="button" class="save" (click)="dismissed.emit()">Schließen</button>
+      } @else {
+        @if (editor.entry) { <button type="button" class="delete" [disabled]="busy()" (click)="remove.emit()">Schicht löschen</button> }
+        <button type="button" class="save" [disabled]="busy()" (click)="submit()">{{ busy() ? 'Speichert…' : 'Speichern' }}</button>
+      }
+    </div>
+  </section>
+}

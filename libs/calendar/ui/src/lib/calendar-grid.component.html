@@ -1,0 +1,36 @@
+<div class="weekday-row" aria-hidden="true">
+  @for (weekday of weekdays; track weekday) { <span>{{ weekday }}</span> }
+</div>
+<div class="calendar-grid" role="grid" aria-label="Monatskalender">
+  @for (day of days(); track day.date) {
+    @let shift = shifts().get(day.date);
+    <div
+      #cell
+      class="day-cell"
+      role="gridcell"
+      cdkDropList
+      [id]="dropId(day.date)"
+      [cdkDropListData]="emptyTypes"
+      [cdkDropListConnectedTo]="['shift-palette']"
+      [cdkDropListDisabled]="!admin()"
+      cdkDropListSortingDisabled
+      [class.is-outside]="!day.isCurrentMonth"
+      [class.is-today]="day.isToday"
+      [class.has-selection]="admin() && selectedType() && !shift"
+      (cdkDropListDropped)="drop($event, day.date, cell)"
+    >
+      <button type="button" [attr.aria-label]="ariaLabel(day, shift)" (click)="activate(day.date, shift)">
+        <span class="day-number">{{ day.dayNumber }}<span class="today-label">{{ day.isToday ? 'Heute' : '' }}</span></span>
+        @if (shift) {
+          <span class="shift shift--{{ shift.type }}">
+            <span class="shift-dot" aria-hidden="true"></span>
+            <strong>{{ labels[shift.type] }}</strong>
+            @if (shift.note) { <small>{{ shift.note }}</small> }
+          </span>
+        } @else if (day.isCurrentMonth) {
+          <span class="empty-hint">{{ admin() && selectedType() ? 'Hier eintragen' : '' }}</span>
+        }
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,46 @@
+<main class="page" #page>
+  <header class="app-header">
+    <a class="brand" href="/calendar" aria-label="Shiftly Startseite"><span aria-hidden="true">☼</span><strong>Shiftly</strong></a>
+    <div class="profile">
+      <span class="avatar" aria-hidden="true">{{ auth.currentUser()?.displayName?.charAt(0) }}</span>
+      <span><strong>{{ auth.currentUser()?.displayName }}</strong><small>{{ auth.isAdmin() ? 'Verwalterin' : 'Familienansicht' }}</small></span>
+      <button type="button" (click)="logout()">Abmelden</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <section class="hero" aria-labelledby="calendar-title">
+      <div><p class="eyebrow">Unser Familienplan</p><h1 id="calendar-title">Schichtkalender</h1><p>Gemeinsam wissen, wann was ansteht.</p></div>
+      <div class="month-nav" aria-label="Monatsnavigation">
+        <button type="button" aria-label="Vorheriger Monat" (click)="changeMonth(-1)">←</button>
+        <button type="button" class="today" (click)="today()">Heute</button>
+        <button type="button" aria-label="Nächster Monat" (click)="changeMonth(1)">→</button>
+      </div>
+    </section>
+
+    @if (auth.isAdmin()) {
+      <shiftly-shift-palette [connectedTo]="dropListIds()" [selected]="selectedType()" (selectedChange)="selectType($event)" />
+    }
+
+    <section class="calendar-card" #grid [attr.aria-busy]="store.loading()">
+      <div class="calendar-head">
+        <h2>{{ monthName() }}</h2>
+        <div class="legend" aria-label="Legende">
+          <span class="early"><i></i>Frühdienst</span><span class="late"><i></i>Spätdienst</span><span class="night"><i></i>Nachtdienst</span>
+        </div>
+      </div>
+      @if (store.loading()) { <div class="state" role="status">Kalender wird geladen…</div> }
+      @else {
+        @if (!store.entries().length) { <p class="empty">Noch keine Schichten eingetragen. {{ auth.isAdmin() ? 'Wähle oben eine Schicht aus und klicke auf einen Tag.' : '' }}</p> }
+        <shiftly-calendar-grid [days]="days()" [shifts]="store.byDate()" [admin]="auth.isAdmin()" [selectedType]="selectedType()" (daySelected)="selectDay($event)" (editShift)="edit($event)" (shiftDropped)="drop($event)" />
+      }
+      @if (store.error()) { <p class="error" role="alert">{{ store.error() }}</p> }
+    </section>
+  </div>
+
+  <footer>Privater Familienkalender <span aria-hidden="true">·</span> {{ auth.isAdmin() ? 'Bearbeitungsmodus' : 'Nur-Lese-Modus' }}</footer>
+</main>
+
+<shiftly-shift-editor [model]="editor()" [busy]="store.saving()" [readonly]="!auth.isAdmin()" (dismissed)="editor.set(null)" (save)="saveEditor($event)" (remove)="deleteEditor()" />
+<shiftly-confirm-dialog [open]="pending() !== null" (dismissed)="pending.set(null)" (accepted)="confirmReplacement()" />
+<div class="status" aria-live="polite" aria-atomic="true">{{ status() }}</div>

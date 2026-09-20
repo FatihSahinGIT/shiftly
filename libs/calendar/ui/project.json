@@ -1,0 +1,13 @@
+{
+  "name": "calendar-ui",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/calendar/ui/src",
+  "prefix": "shiftly",
+  "projectType": "library",
+  "tags": ["scope:calendar", "type:ui"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

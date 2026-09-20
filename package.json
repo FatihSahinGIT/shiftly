@@ -1,11 +1,18 @@
 {
-  "name": "@org/source",
+  "name": "shiftly",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "start": "nx serve shift-calendar",
+    "build": "nx build shift-calendar --configuration=production",
+    "lint": "nx run-many -t lint --all",
+    "typecheck": "tsc -p apps/shift-calendar/tsconfig.app.json --noEmit",
+    "test": "nx run-many -t test -p shared-models core-auth calendar-data-access shift-calendar"
+  },
   "private": true,
   "dependencies": {
     "@angular-devkit/build-angular": "22.1.6",
+    "@angular/cdk": "^22.1.4",
     "@angular/common": "22.1.4",
     "@angular/compiler": "22.1.4",
     "@angular/core": "22.1.4",
@@ -14,7 +21,9 @@
     "@angular/platform-server": "22.1.4",
     "@angular/router": "22.1.4",
     "@angular/ssr": "22.1.6",
+    "@supabase/supabase-js": "^2.116.0",
     "express": "^4.21.2",
+    "gsap": "^3.15.0",
     "rxjs": "~7.8.0",
     "zone.js": "0.16.2"
   },
